@@ -129,7 +129,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 	def dir_choosing(self):
 		self.index = 0
 		self.new_playlist = True
-		directory = QFileDialog.getExistingDirectory(None, "Open Directory", "/home/vasssya/Music/my_music", QFileDialog.ShowDirsOnly)
+		directory = QFileDialog.getExistingDirectory(None, "Open Directory", "/home", QFileDialog.ShowDirsOnly)
 		if directory:
 			os.chdir(directory)
 			self.tableWidget.setRowCount(0)
@@ -158,7 +158,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.new_playlist = True
 		fileName = QFileDialog.getOpenFileName(
 					None, "Open Playlist (m3u, pls)",
-					"/home/vasssya/Python/project_V_player")[0]
+					"/home")[0]
 		if fileName:
 			self.tableWidget.setRowCount(0)
 			self.playlist = []

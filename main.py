@@ -29,11 +29,13 @@ class Timer(QtCore.QTimer):
 		self.ind = 1
 		self.current_position = 0
 		self.timer()
-
+		self.current_position = Hell_Player.position * 5
 	def progress(self):
-		if Hell_VPlayer.pause_state == False:
+		if Hell_Player.pause_state == False and Hell_Player.play_state:
+			
+			
+			Hell_Player.progressBar.setValue(self.current_position)
 			self.current_position += 1
-			Hell_VPlayer.progressBar.setValue(self.current_position)
 
 	def timer(self):	
 		if self.current_timer_test:
@@ -41,13 +43,14 @@ class Timer(QtCore.QTimer):
 			self.current_timer_test.deleteLater()
 		self.current_timer_test = QtCore.QTimer()
 		self.current_timer_test.timeout.connect(self.timer)
-#		self.current_timer_test.setSingleShot(True)
+		self.current_timer_test.setSingleShot(True)
 		self.current_timer_test.start(200)
 		self.progress()
 
 class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 	def __init__(self, parent = None):
 		super().__init__(parent)
+		self.position = 0
 		self.setupUi(self)
 		self.new_playlist = True
 		self.pause_state = False
@@ -62,14 +65,14 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 #		self.current_position = 0
 		self.counter = 0
 		self.current_sec = 0
-#		self.current_min = 0
+		self.current_min = 0
 		
 		# Connect buttons with custom functions
 		self.playButton.clicked.connect(self.play_button)
 		self.pauseButton.clicked.connect(self.pause)
 		self.nextButton.clicked.connect(self.next)
 		self.prevButton.clicked.connect(self.prev)
-		#self.playlistButton.clicked.connect(self.get_position)
+
 		self.open_folder.clicked.connect(self.dir_choosing)
 		self.playlistButton.clicked.connect(self.open_playlist)
 		self.ShowPL.clicked.connect(self.increase_height)
@@ -80,20 +83,43 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.song_min.display("00")
 		self.song_sec.display("00")
 		self.progressBar.valueChanged["int"].connect(self.repaint)
-		#self.progressBar.valueChanged["int"].connect(self.set_position)
 
+		self.progressBar.sliderMoved['int'].connect(self.set_position)
+		
+		self.HidePL.setVisible(False)
+		self.pauseButton.setVisible(False)
+		self.tableWidget.setColumnWidth(0, 1)
+		self.tableWidget.setColumnWidth(1, 237)
+		self.tableWidget.setColumnWidth(2, 129)
+		self.tableWidget.setColumnWidth(3, 129)
+		self.tableWidget.setColumnWidth(4, 51)
+		
 
+	def set_position(self, posi):
+		if self.check_playlist():
+			self.current_sec = int(self.timer_object.current_position / 5) - 1
+			while self.current_sec > 60:
+				self.current_sec = self.current_sec - 60
+			self.current_min = int(self.timer_object.current_position / 300)
+			if self.play_state:
+				self.position = int(posi / 5)
+				mus.pause()
+				mus.play(0, self.position)
+				self.timer_object.current_position = self.position * 5
+				
 	def set_volume(self, vol):
 		mus.set_volume(vol / 50)
 
 	def mute(self, state):
-		if state == 2:
+		if state == 2:   #state 2 = unmute
 			self.volume = mus.get_volume()
 			mus.set_volume(0)
 			self.volumeSlider.setProperty("value", 0)
-		elif state == 0:
+			self.volumeSlider.setEnabled(False)
+		elif state == 0:   #state 0 = mute
 			mus.set_volume(self.volume)
 			self.volumeSlider.setProperty("value", self.volume * 50)
+			self.volumeSlider.setEnabled(True)
 		
 	def get_item_clicked(self, row, column):
 		self.pause_state = False
@@ -129,7 +155,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 	def dir_choosing(self):
 		self.index = 0
 		self.new_playlist = True
-		directory = QFileDialog.getExistingDirectory(None, "Open Directory", "/home", QFileDialog.ShowDirsOnly)
+		directory = QFileDialog.getExistingDirectory(None, "Open Directory", "/home/vasssya/Music/my_music", QFileDialog.ShowDirsOnly)
 		if directory:
 			os.chdir(directory)
 			self.tableWidget.setRowCount(0)
@@ -158,7 +184,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.new_playlist = True
 		fileName = QFileDialog.getOpenFileName(
 					None, "Open Playlist (m3u, pls)",
-					"/home")[0]
+					"/home/vasssya/Python/project_V_player")[0]
 		if fileName:
 			self.tableWidget.setRowCount(0)
 			self.playlist = []
@@ -186,6 +212,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.ShowPL.hide()
 		self.song_info_displaying()
 		self.playlist_len_for_random = len(self.playlist) - 1
+		self.timer_object = Timer()
 		
 	def add_corrupted_files(self, name):
 		self.rowPosition = self.tableWidget.rowCount()
@@ -253,18 +280,10 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 				self.play_music()
 			else:
 				self.play_music()
-			self.timer_object = Timer()
 
-	def set_position(self, posi):
-		if self.check_playlist():
-			song = self.playlist[self.index]
-			mus.load(song)
-			mus.set_pos(posi)
-		print(position)
 	
 	def play_music(self):
 		if self.pause_state == False:
-#			self.current_position = 0
 			self.current_sec = 0
 			self.current_min = 0
 			self.song_sec.display("00")
@@ -272,6 +291,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			current = MP3(self.playlist[self.index])
 			self.duration = int(current.info.length) * 5
 			self.progressBar.setMaximum(self.duration)
+			print(self.duration)
 		self.play_state = True
 		self.new_playlist = False
 
@@ -290,6 +310,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 					print("Kernel panic! Can't open the file!")
 					self.index += 1
 					self.play_music()
+					self.wait_for_end()
 				else:
 					self.song_info_displaying()
 					mus.load(song)
@@ -324,16 +345,10 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			self.time_calculating_crazy_method()
 			self.current_sec += 1
 		
-	def progress_bar(self):
-		self.current_position += 1
-		self.progressBar.setValue(self.current_position)
-	
-	
 	#Check playing status
 	def wait_for_end(self):
 		pygame.display.init()
-		if self.pause_state == False:
-			self.time_display()
+
 		SONG_END = pygame.USEREVENT + 1
 		mus.set_endevent(SONG_END)	
 		for event in pygame.event.get():
@@ -342,19 +357,24 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			if event.type == SONG_END:
 				pygame.display.quit()
 				self.next()
+		self.tableWidget.selectRow(self.index)
 		self.start_timer()
-		
+
+					
 	#Loop repeat method
 	def start_timer(self):
 		if self.current_timer:
+			if self.pause_state == False:
+				self.time_display()
 			self.current_timer.stop()
 			self.current_timer.deleteLater()
 		self.current_timer = QtCore.QTimer()
 		self.current_timer.timeout.connect(self.wait_for_end)
-#		self.current_timer.setSingleShot(True)
+		self.current_timer.setSingleShot(True)
 		self.current_timer.start(1000)
 		self.counter += 1
 
+			
 	#Generating index for next song in playlist
 	def index_generate(self):
 		if self.shuffle_box.isChecked():
@@ -371,9 +391,11 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		
 	def next(self):
 		if self.check_playlist():
-			if self.new_playlist and self.shuffle_box.isChecked() == False:
-				self.index = 0
-				self.play_music()
+			if (self.new_playlist and
+				self.play_state and
+				self.shuffle_box.isChecked() == False):
+					self.index = 0
+					self.play_music()
 			else:
 				self.index_generate()
 				self.song_change()
@@ -389,6 +411,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			if self.play_state == False:
 				self.song_info_displaying()
 			else:
+				self.position = 0
 				self.play_music()
 		else:
 			mus.stop()
@@ -398,7 +421,6 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			self.playButton.show()
 			self.pauseButton.hide()
 		self.new_playlist = False
-		self.progressBar.reset()
 		self.timer_object.current_position = 0
 				
 	def pause(self):
@@ -407,7 +429,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)
-	Hell_VPlayer = MyFirstPlayer()
-	Hell_VPlayer.show()
+	Hell_Player = MyFirstPlayer()
+	Hell_Player.show()
 	sys.exit(app.exec_())
 

@@ -109,18 +109,21 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 				self.timer_object.current_position = self.position * 5
 				
 	def set_volume(self, vol):
-		mus.set_volume(vol / 50)
+		if self.muteCheckBox.isChecked:
+			mus.set_volume(vol / 50)
+			self.muteCheckBox.setChecked(False)
+		else:
+			mus.set_volume(vol / 50)
 
 	def mute(self, state):
 		if state == 2:   #state 2 = unmute
 			self.volume = mus.get_volume()
 			mus.set_volume(0)
 			self.volumeSlider.setProperty("value", 0)
-			self.volumeSlider.setEnabled(False)
+			self.muteCheckBox.setChecked(True)
 		elif state == 0:   #state 0 = mute
 			mus.set_volume(self.volume)
 			self.volumeSlider.setProperty("value", self.volume * 50)
-			self.volumeSlider.setEnabled(True)
 		
 	def get_item_clicked(self, row, column):
 		self.pause_state = False

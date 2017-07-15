@@ -1,4 +1,5 @@
 #!/usr/bin/env python3.6
+#-*- coding: utf-8 -*-
 #song = "/path/to/file.mp3"
 #audio = MP3(song)
 #print(audio.info.length)
@@ -127,6 +128,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.play_music()
 		self.pauseButton.show()
 		self.playButton.hide()
+		self.timer_object.current_position = 0
 
 	def window_resizing(self):
 		width = self.frameGeometry().width()
@@ -291,7 +293,6 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			current = MP3(self.playlist[self.index])
 			self.duration = int(current.info.length) * 5
 			self.progressBar.setMaximum(self.duration)
-			print(self.duration)
 		self.play_state = True
 		self.new_playlist = False
 

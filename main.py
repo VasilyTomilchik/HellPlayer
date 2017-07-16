@@ -16,7 +16,7 @@ from PyQt5.QtCore import QDirIterator, QDir, QFile
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QFileDialog, QWidget
 from tinytag import TinyTag
-from mutagen.mp3 import MP3   #for getting song duration
+#from mutagen.mp3 import MP3   #for getting song duration
 from gui import Hell_Player
 
 pygame.mixer.init()
@@ -31,6 +31,7 @@ class Timer(QtCore.QTimer):
 		self.current_position = 0
 		self.timer()
 		self.current_position = Hell_Player.position * 5
+		
 	def progress(self):
 		if Hell_Player.pause_state == False and Hell_Player.play_state:
 			
@@ -160,7 +161,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 	def dir_choosing(self):
 		self.index = 0
 		self.new_playlist = True
-		directory = QFileDialog.getExistingDirectory(None, "Open Directory", "/", QFileDialog.ShowDirsOnly)
+		directory = QFileDialog.getExistingDirectory(None, "Open Directory", "/home/vasssya/Music/my_music", QFileDialog.ShowDirsOnly)
 		if directory:
 			os.chdir(directory)
 			self.tableWidget.setRowCount(0)
@@ -189,7 +190,7 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.new_playlist = True
 		fileName = QFileDialog.getOpenFileName(
 					None, "Open Playlist (m3u, pls)",
-					"/")[0]
+					"/home/vasssya/Python/project_V_player")[0]
 		if fileName:
 			self.tableWidget.setRowCount(0)
 			self.playlist = []
@@ -233,11 +234,27 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.rowPosition = self.tableWidget.rowCount()
 		self.tableWidget.insertRow(self.rowPosition)
 		self.tableWidget.setRowHeight(self.rowPosition, 18)
+		
 		song_title = song_info.title
+		try:
+			song_title = song_title.encode("latin-1").decode("cp1251")
+		except:
+			song_title = song_info.title
 		if song_title == "":
 			song_title = file_name.split("/")[-1]
+
 		song_artist = song_info.artist
+		try:
+			song_artist = song_artist.encode("latin-1").decode("cp1251")
+		except:
+			song_artist = song_info.artist
+			
 		song_album = song_info.album
+		try:
+			song_album = song_album.encode("latin-1").decode("cp1251")
+		except:
+			song_album = song_info.album
+			
 		song_year = song_info.year
 
 		#tooltip = song_title + "::" + song_artist + "::" + song_album + "::" + song_year
@@ -252,15 +269,32 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		self.song_title_field.clear()
 		current_song = self.playlist[self.index]
 		current_display_info = TinyTag.get(current_song)
+		title = str(current_display_info.title)
+		try:
+			title = title.encode("latin-1").decode("cp1251")
+		except:
+			title = str(current_display_info.title)
+
 		album = str(current_display_info.album)
+		try:
+			album = album.encode("latin-1").decode("cp1251")
+		except:
+			album = str(current_display_info.album)
+			
+		artist = str(current_display_info.artist)
+		try:
+			artist = artist.encode("latin-1").decode("cp1251")
+		except:
+			artist = str(current_display_info.artist)
+			
 		year = str(current_display_info.year)
 		if year == "None":
 			album_to_display = album
 		else:
 			album_to_display = album + " (" + year + ")"
-		self.song_title_field.setText(current_display_info.title)
+		self.song_title_field.setText(title)
 		self.album_name_field.setText(album_to_display)
-		self.artist_name_field.setText(current_display_info.artist)
+		self.artist_name_field.setText(artist)
 		self.tableWidget.selectRow(self.index)
 
 	#To check whether playlist is empty or not	
@@ -293,9 +327,14 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			self.current_min = 0
 			self.song_sec.display("00")
 			self.song_min.display("00")
-			current = MP3(self.playlist[self.index])
-			self.duration = int(current.info.length) * 5
-			self.progressBar.setMaximum(self.duration)
+			
+		current = TinyTag.get(self.playlist[self.index])
+		self.duration = int(current.duration * 5)
+#		print(self.duration)
+#			current = MP3(self.playlist[self.index])
+#			self.duration = int(current.info.length) * 5
+		self.progressBar.setMaximum(self.duration)
+			
 		self.play_state = True
 		self.new_playlist = False
 
@@ -348,11 +387,17 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			self.current_sec = 0
 			self.time_calculating_crazy_method()
 			self.current_sec += 1
-		
+
+
+	def time_display_test(self):
+		minutes = int(self.counter / 60)
+		seconds = self.counter - (60 * minutes)
+		print (minutes, seconds)
+
+
 	#Check playing status
 	def wait_for_end(self):
 		pygame.display.init()
-
 		SONG_END = pygame.USEREVENT + 1
 		mus.set_endevent(SONG_END)	
 		for event in pygame.event.get():
@@ -361,14 +406,14 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 			if event.type == SONG_END:
 				pygame.display.quit()
 				self.next()
-		self.tableWidget.selectRow(self.index)
+#		self.tableWidget.selectRow(self.index)
 		self.start_timer()
 
 					
 	#Loop repeat method
 	def start_timer(self):
 		if self.current_timer:
-			if self.pause_state == False:
+			if self.pause_state == False and self.play_state:
 				self.time_display()
 			self.current_timer.stop()
 			self.current_timer.deleteLater()
@@ -395,22 +440,32 @@ class MyFirstPlayer(QtWidgets.QWidget, Hell_Player):
 		
 	def next(self):
 		if self.check_playlist():
-			if (self.new_playlist and
-				self.play_state and
-				self.shuffle_box.isChecked() == False):
-					self.index = 0
-					self.play_music()
+			if (self.new_playlist and self.play_state and
+					self.shuffle_box.isChecked() == False):
+				self.index = 0
+				self.play_music()
 			else:
 				self.index_generate()
 				self.song_change()
 			
 	def prev(self):
 		if self.check_playlist():
-			self.index_generate()
-			self.index -= 2
-			self.song_change()
+			if self.index > 0:
+				self.index_generate()
+				self.index -= 2
+				self.song_change()
+			else:
+				self.index_generate()
+				self.index -= 1
+				self.song_change()
 	
 	def song_change(self):
+		self.counter = 0
+		self.current_sec = 0
+		self.current_min = 0
+		self.song_sec.display("00")
+		self.song_min.display("00")
+		self.progressBar.setValue(0)
 		if self.pause_state == False:
 			if self.play_state == False:
 				self.song_info_displaying()
